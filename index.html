@@ -3,46 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Loneliness of a Syrnik</title>
+    <title>Syrnik: The Sadness</title>
     <style>
         body {
             margin: 0;
             padding: 0;
             width: 100vw;
             height: 100vh;
-            background-color: #050505; /* Почти черный */
+            background-color: #000;
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            font-family: 'Times New Roman', serif; /* Шрифт для драмы */
+            font-family: 'Georgia', serif; /* Шрифт ещё строже */
         }
 
-        /* Холст для дождя */
+        /* Дождь */
         #rain-canvas {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             z-index: 1;
-            opacity: 0.4; /* Еле заметный дождь */
+            opacity: 0.3; 
         }
 
-        /* Жесткая виньетка (тьма сгущается) */
+        /* Виньетка - теперь она постоянная часть атмосферы */
         #vignette {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             z-index: 5;
-            /* Радиальный градиент имитирует луч прожектора в темноте */
-            background: radial-gradient(circle at center, transparent 10%, rgba(0,0,0,0.8) 50%, #000 90%);
-            opacity: 0;
-            transition: opacity 3s ease-in-out;
+            background: radial-gradient(circle, transparent 25%, rgba(0,0,0,0.9) 85%);
             pointer-events: none;
         }
-        #vignette.active { opacity: 1; }
 
-        /* Контейнер для сырника */
+        /* Сцена */
         #stage {
             position: relative;
             z-index: 2;
@@ -57,33 +50,33 @@
             width: 300px;
             height: auto;
             display: block;
-            /* ФИЛЬТРЫ ДРАМЫ: */
-            /* Grayscale - убираем радостные цвета */
-            /* Contrast - добавляем жесткости */
-            /* Sepia - немного старины */
-            filter: grayscale(90%) contrast(150%) sepia(20%) brightness(0.8);
+            /* Максимальный нуар */
+            filter: grayscale(100%) contrast(120%) brightness(0.7);
+            /* Важно: origin внизу, чтобы он "оседал" на землю */
+            transform-origin: center bottom; 
             will-change: transform;
         }
 
-        /* Кнопка */
+        /* Кнопка - еле заметная */
         #start-btn {
             position: absolute;
             z-index: 10;
             background: transparent;
-            color: #888;
-            border: 1px solid #444;
-            padding: 15px 40px;
-            font-family: 'Times New Roman', serif;
-            font-size: 14px;
-            letter-spacing: 3px;
+            color: #444; /* Темно-серый цвет */
+            border: 1px solid #333; /* Очень тусклая рамка */
+            padding: 15px 30px;
+            font-family: 'Georgia', serif;
+            font-size: 12px;
+            letter-spacing: 4px;
+            text-transform: lowercase;
             cursor: pointer;
-            transition: all 0.5s;
+            transition: all 0.8s ease;
         }
 
         #start-btn:hover {
-            color: #fff;
-            border-color: #fff;
-            background: rgba(255,255,255,0.1);
+            color: #888;
+            border-color: #666;
+            box-shadow: 0 0 10px rgba(255,255,255,0.05);
         }
 
     </style>
@@ -97,45 +90,37 @@
         <img src="syrnik.webp" id="syrnik-img" alt="Sad Syrnik">
     </div>
 
-    <button id="start-btn">initiate sadness.</button>
+    <button id="start-btn">accept fate</button>
     <audio id="audioPlayer" src="music.mp3" loop></audio>
 
     <script>
-        // --- Эффект Дождя (Canvas) ---
+        // --- Дождь (без изменений, он хорош) ---
         const canvas = document.getElementById('rain-canvas');
         const ctx = canvas.getContext('2d');
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
-        
         const drops = [];
-        const maxDrops = 100; // Количество капель
-
         class Drop {
-            constructor() {
-                this.reset();
-            }
+            constructor() { this.reset(); }
             reset() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * -height;
-                this.speed = Math.random() * 5 + 5; // Быстрый, тяжелый дождь
+                this.speed = Math.random() * 4 + 4;
                 this.len = Math.random() * 20 + 10;
-                this.opacity = Math.random() * 0.5 + 0.1;
+                this.opacity = Math.random() * 0.3 + 0.1;
             }
             draw() {
                 this.y += this.speed;
                 if (this.y > height) this.reset();
-                
                 ctx.beginPath();
-                ctx.strokeStyle = `rgba(174, 194, 224, ${this.opacity})`; // Холодный синеватый цвет
+                ctx.strokeStyle = `rgba(100, 100, 120, ${this.opacity})`;
                 ctx.lineWidth = 1;
                 ctx.moveTo(this.x, this.y);
                 ctx.lineTo(this.x, this.y + this.len);
                 ctx.stroke();
             }
         }
-
-        for (let i = 0; i < maxDrops; i++) drops.push(new Drop());
-
+        for (let i = 0; i < 100; i++) drops.push(new Drop());
         function animateRain() {
             ctx.clearRect(0, 0, width, height);
             drops.forEach(drop => drop.draw());
@@ -143,36 +128,27 @@
         }
         animateRain();
 
-        // Ресайз окна
-        window.addEventListener('resize', () => {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        });
-
-
-        // --- Логика Сырника и Музыки ---
+        // --- Логика Анимации ---
         const startBtn = document.getElementById('start-btn');
         const audioPlayer = document.getElementById('audioPlayer');
         const syrnik = document.getElementById('syrnik-img');
-        const vignette = document.getElementById('vignette');
         
         let audioContext, analyser, source;
         let isPlaying = false;
-        // Переменная для бесконечного медленного вращения
-        let eternalRotation = 0;
 
         startBtn.addEventListener('click', () => {
             if (isPlaying) return;
             
-            // Кнопка исчезает медленно, как надежда
+            // Кнопка растворяется в небытие
             startBtn.style.opacity = '0';
-            setTimeout(() => startBtn.style.display = 'none', 1000);
-
-            vignette.classList.add('active');
+            setTimeout(() => startBtn.style.display = 'none', 2000);
 
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioContext.createAnalyser();
-            analyser.fftSize = 2048; // Очень точный анализ для плавности
+            
+            // smoothingTimeConstant = 0.9 делает реакцию очень плавной, "вязкой"
+            analyser.smoothingTimeConstant = 0.9; 
+            analyser.fftSize = 2048;
 
             source = audioContext.createMediaElementSource(audioPlayer);
             source.connect(analyser);
@@ -190,47 +166,43 @@
             const dataArray = new Uint8Array(bufferLength);
             analyser.getByteFrequencyData(dataArray);
 
-            // Ищем бит. Для Sting'а это низкие частоты, но мягкие.
+            // Получаем уровень баса (0-255)
             let bassSum = 0;
-            // Берем чуть более широкий спектр низов
-            for (let i = 0; i < 10; i++) {
-                bassSum += dataArray[i];
-            }
-            let bassAvg = bassSum / 10;
+            for (let i = 0; i < 8; i++) bassSum += dataArray[i];
+            let bassAvg = bassSum / 8;
 
-            // --- АНИМАЦИЯ ДРАМЫ ---
-            
-            // Нормализация (0.0 - 1.0)
-            const beatIntensity = bassAvg / 255; 
+            // Нормализуем силу удара (0.0 до 1.0)
+            const beatForce = bassAvg / 255;
 
-            // 1. Пульсация (Scale)
-            // Он не прыгает. Он тяжело дышит. 
-            // Scale меняется от 1.0 до 1.15
-            const scale = 1 + (beatIntensity * 0.15);
+            // --- 1. Меланхоличное покачивание ---
+            // Используем синус от времени. Это движение не зависит от музыки.
+            // Сырник качается как маятник часов.
+            const time = Date.now() * 0.001; // время в секундах
+            const sway = Math.sin(time) * 4; // Качается на 4 градуса влево-вправо
 
-            // 2. Вращение (Rotation)
-            // Он медленно вращается постоянно, символизируя ход времени
-            eternalRotation += 0.05; 
-            // Но на бите его чуть "дергает" от боли
-            const twitch = (beatIntensity * 2) * (Math.random() > 0.5 ? 1 : -1);
+            // --- 2. Тяжелый вздох (реакция на бит) ---
+            // Вместо того чтобы расти (scale > 1), он будет "оседать" под тяжестью
             
-            // 3. Тень (Drop Shadow)
-            // Тень становится глубже и резче на ударе
-            // Черная тень, а не светящаяся
-            const shadowOpacity = 0.5 + (beatIntensity * 0.5);
-            const shadowBlur = 20 - (beatIntensity * 10); // Тень "сжимается" на ударе
+            // Сплющивание по вертикали (становится ниже)
+            // Чем сильнее бит, тем меньше Y (до 0.9)
+            const scaleY = 1 - (beatForce * 0.15); 
             
-            // Применяем стили
-            syrnik.style.transform = `scale(${scale}) rotate(${eternalRotation + twitch}deg)`;
-            
-            // Меняем фильтр в такт: на ударе сырник становится чуть контрастнее (драматичнее)
-            // И тень пульсирует
-            syrnik.style.filter = `
-                grayscale(90%) 
-                contrast(${100 + beatIntensity * 50}%) 
-                brightness(${0.8 + beatIntensity * 0.1})
-                drop-shadow(0 0 ${shadowBlur}px rgba(0,0,0,${shadowOpacity}))
+            // Расширение по горизонтали (компенсация, эффект желе)
+            // Чем сильнее бит, тем шире X (до 1.05)
+            const scaleX = 1 + (beatForce * 0.05);
+
+            // Смещение вниз (он физически опускается)
+            const translateY = beatForce * 15; // Опускается на 15 пикселей вниз
+
+            // --- Применяем ---
+            syrnik.style.transform = `
+                translateY(${translateY}px)
+                rotate(${sway}deg)
+                scale(${scaleX}, ${scaleY})
             `;
+            
+            // Немного затемняем его на ударе (свет гаснет)
+            syrnik.style.filter = `grayscale(100%) contrast(120%) brightness(${0.7 - beatForce * 0.2})`;
         }
     </script>
 </body>
