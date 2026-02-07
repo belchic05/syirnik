@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sting & Syrnik</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #1a1a1a; /* Темный фон */
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+
+        /* Виньетка (затемнение по краям) */
+        #vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Чтобы сквозь нее можно было кликать */
+            z-index: 5;
+            /* Радиальный градиент: прозрачный в центре, черный по краям */
+            background: radial-gradient(circle, rgba(0,0,0,0) 30%, rgba(0,0,0,1) 100%);
+            opacity: 0; /* Изначально скрыта */
+            transition: opacity 2s ease-in-out; /* Плавное появление за 2 секунды */
+        }
+
+        /* Класс для активации виньетки */
+        #vignette.active {
+            opacity: 1;
+        }
+
+        /* Контейнер для сырника */
+        #stage {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Картинка сырника */
+        #syrnik-img {
+            width: 300px; /* Размер сырника */
+            height: auto;
+            display: block;
+            /* Плавность анимации, чтобы не дергался слишком резко */
+            transition: transform 0.05s ease-out; 
+            filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+        }
+
+        /* Кнопка старта */
+        #start-btn {
+            position: absolute;
+            z-index: 10;
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #fff;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+            transition: transform 0.2s, opacity 0.5s;
+        }
+
+        #start-btn:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Виньетка -->
+    <div id="vignette"></div>
+
+    <!-- Сцена с сырником -->
+    <div id="stage">
+        <!-- Убедись, что файл syrnik.webp лежит рядом с html -->
+        <img src="syrnik.webp" id="syrnik-img" alt="Dancing Syrnik">
+    </div>
+
+    <!-- Кнопка запуска -->
+    <button id="start-btn">▶ Play "Shape of My Heart"</button>
+
+    <!-- Аудио -->
+    <audio id="audioPlayer" src="music.mp3" loop></audio>
+
+    <script>
+        const startBtn = document.getElementById('start-btn');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const syrnik = document.getElementById('syrnik-img');
+        const vignette = document.getElementById('vignette');
+        
+        let audioContext;
+        let analyser;
+        let source;
+        let isPlaying = false;
+
+        startBtn.addEventListener('click', startParty);
+
+        function startParty() {
+            if (isPlaying) return;
+            
+            // 1. Скрываем кнопку
+            startBtn.style.opacity = '0';
+            setTimeout(() => startBtn.style.display = 'none', 500);
+
+            // 2. Включаем виньетку
+            vignette.classList.add('active');
+
+            // 3. Инициализируем аудио контекст
+            // (Браузеры требуют это делать внутри клика)
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Создаем анализатор
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 256; 
+
+            // Подключаем аудио-тег к Web Audio API
+            source = audioContext.createMediaElementSource(audioPlayer);
+            source.connect(analyser);
+            analyser.connect(audioContext.destination);
+
+            // 4. Запускаем музыку
+            audioPlayer.play();
+            isPlaying = true;
+
+            // 5. Запускаем анимацию
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            
+            // Получаем данные о частотах
+            analyser.getByteFrequencyData(dataArray);
+
+            // Вычисляем среднюю громкость басов (первые ~10 частот)
+            let bassSum = 0;
+            // Shape of my heart — песня спокойная, берем диапазон пошире
+            let bassCount = 12; 
+            
+            for (let i = 0; i < bassCount; i++) {
+                bassSum += dataArray[i];
+            }
+            
+            let bassAverage = bassSum / bassCount;
+
+            // Настраиваем чувствительность
+            // bassAverage — это число от 0 до 255.
+            // Делим на 400, чтобы пульсация была мягкой (для Sting подходит лучше, чем жесткое техно)
+            const scale = 1 + (bassAverage / 400);
+
+            // Применяем масштаб + небольшое вращение для живости
+            // Вращение зависит от баса: чем громче удар, тем чуть больше поворот
+            const rotation = (bassAverage / 50) - 2; // легкое покачивание
+
+            syrnik.style.transform = `scale(${scale}) rotate(${rotation}deg)`;
+        }
+    </script>
+</body>
+</html>
