@@ -3,169 +3,234 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sting & Syrnik</title>
+    <title>The Loneliness of a Syrnik</title>
     <style>
         body {
             margin: 0;
             padding: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #050505; /* Почти черный */
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            background-color: #1a1a1a; /* Темный фон */
             overflow: hidden;
-            font-family: sans-serif;
+            font-family: 'Times New Roman', serif; /* Шрифт для драмы */
         }
 
-        /* Виньетка (затемнение по краям) */
-        #vignette {
-            position: fixed;
+        /* Холст для дождя */
+        #rain-canvas {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none; /* Чтобы сквозь нее можно было кликать */
-            z-index: 5;
-            /* Радиальный градиент: прозрачный в центре, черный по краям */
-            background: radial-gradient(circle, rgba(0,0,0,0) 30%, rgba(0,0,0,1) 100%);
-            opacity: 0; /* Изначально скрыта */
-            transition: opacity 2s ease-in-out; /* Плавное появление за 2 секунды */
+            z-index: 1;
+            opacity: 0.4; /* Еле заметный дождь */
         }
 
-        /* Класс для активации виньетки */
-        #vignette.active {
-            opacity: 1;
+        /* Жесткая виньетка (тьма сгущается) */
+        #vignette {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 5;
+            /* Радиальный градиент имитирует луч прожектора в темноте */
+            background: radial-gradient(circle at center, transparent 10%, rgba(0,0,0,0.8) 50%, #000 90%);
+            opacity: 0;
+            transition: opacity 3s ease-in-out;
+            pointer-events: none;
         }
+        #vignette.active { opacity: 1; }
 
         /* Контейнер для сырника */
         #stage {
             position: relative;
-            z-index: 1;
+            z-index: 2;
+            width: 400px;
+            height: 400px;
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
-        /* Картинка сырника */
         #syrnik-img {
-            width: 300px; /* Размер сырника */
+            width: 300px;
             height: auto;
             display: block;
-            /* Плавность анимации, чтобы не дергался слишком резко */
-            transition: transform 0.05s ease-out; 
-            filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+            /* ФИЛЬТРЫ ДРАМЫ: */
+            /* Grayscale - убираем радостные цвета */
+            /* Contrast - добавляем жесткости */
+            /* Sepia - немного старины */
+            filter: grayscale(90%) contrast(150%) sepia(20%) brightness(0.8);
+            will-change: transform;
         }
 
-        /* Кнопка старта */
+        /* Кнопка */
         #start-btn {
             position: absolute;
             z-index: 10;
-            padding: 15px 30px;
-            font-size: 20px;
-            background: #fff;
-            border: none;
-            border-radius: 30px;
+            background: transparent;
+            color: #888;
+            border: 1px solid #444;
+            padding: 15px 40px;
+            font-family: 'Times New Roman', serif;
+            font-size: 14px;
+            letter-spacing: 3px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
-            transition: transform 0.2s, opacity 0.5s;
+            transition: all 0.5s;
         }
 
         #start-btn:hover {
-            transform: scale(1.05);
+            color: #fff;
+            border-color: #fff;
+            background: rgba(255,255,255,0.1);
         }
+
     </style>
 </head>
 <body>
 
-    <!-- Виньетка -->
     <div id="vignette"></div>
+    <canvas id="rain-canvas"></canvas>
 
-    <!-- Сцена с сырником -->
     <div id="stage">
-        <!-- Убедись, что файл syrnik.webp лежит рядом с html -->
-        <img src="syrnik.webp" id="syrnik-img" alt="Dancing Syrnik">
+        <img src="syrnik.webp" id="syrnik-img" alt="Sad Syrnik">
     </div>
 
-    <!-- Кнопка запуска -->
-    <button id="start-btn">▶ Play "Shape of My Heart"</button>
-
-    <!-- Аудио -->
+    <button id="start-btn">initiate sadness.</button>
     <audio id="audioPlayer" src="music.mp3" loop></audio>
 
     <script>
+        // --- Эффект Дождя (Canvas) ---
+        const canvas = document.getElementById('rain-canvas');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+        
+        const drops = [];
+        const maxDrops = 100; // Количество капель
+
+        class Drop {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * -height;
+                this.speed = Math.random() * 5 + 5; // Быстрый, тяжелый дождь
+                this.len = Math.random() * 20 + 10;
+                this.opacity = Math.random() * 0.5 + 0.1;
+            }
+            draw() {
+                this.y += this.speed;
+                if (this.y > height) this.reset();
+                
+                ctx.beginPath();
+                ctx.strokeStyle = `rgba(174, 194, 224, ${this.opacity})`; // Холодный синеватый цвет
+                ctx.lineWidth = 1;
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x, this.y + this.len);
+                ctx.stroke();
+            }
+        }
+
+        for (let i = 0; i < maxDrops; i++) drops.push(new Drop());
+
+        function animateRain() {
+            ctx.clearRect(0, 0, width, height);
+            drops.forEach(drop => drop.draw());
+            requestAnimationFrame(animateRain);
+        }
+        animateRain();
+
+        // Ресайз окна
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+
+        // --- Логика Сырника и Музыки ---
         const startBtn = document.getElementById('start-btn');
         const audioPlayer = document.getElementById('audioPlayer');
         const syrnik = document.getElementById('syrnik-img');
         const vignette = document.getElementById('vignette');
         
-        let audioContext;
-        let analyser;
-        let source;
+        let audioContext, analyser, source;
         let isPlaying = false;
+        // Переменная для бесконечного медленного вращения
+        let eternalRotation = 0;
 
-        startBtn.addEventListener('click', startParty);
-
-        function startParty() {
+        startBtn.addEventListener('click', () => {
             if (isPlaying) return;
             
-            // 1. Скрываем кнопку
+            // Кнопка исчезает медленно, как надежда
             startBtn.style.opacity = '0';
-            setTimeout(() => startBtn.style.display = 'none', 500);
+            setTimeout(() => startBtn.style.display = 'none', 1000);
 
-            // 2. Включаем виньетку
             vignette.classList.add('active');
 
-            // 3. Инициализируем аудио контекст
-            // (Браузеры требуют это делать внутри клика)
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // Создаем анализатор
             analyser = audioContext.createAnalyser();
-            analyser.fftSize = 256; 
+            analyser.fftSize = 2048; // Очень точный анализ для плавности
 
-            // Подключаем аудио-тег к Web Audio API
             source = audioContext.createMediaElementSource(audioPlayer);
             source.connect(analyser);
             analyser.connect(audioContext.destination);
 
-            // 4. Запускаем музыку
             audioPlayer.play();
             isPlaying = true;
+            renderFrame();
+        });
 
-            // 5. Запускаем анимацию
-            animate();
-        }
-
-        function animate() {
-            requestAnimationFrame(animate);
+        function renderFrame() {
+            requestAnimationFrame(renderFrame);
 
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Uint8Array(bufferLength);
-            
-            // Получаем данные о частотах
             analyser.getByteFrequencyData(dataArray);
 
-            // Вычисляем среднюю громкость басов (первые ~10 частот)
+            // Ищем бит. Для Sting'а это низкие частоты, но мягкие.
             let bassSum = 0;
-            // Shape of my heart — песня спокойная, берем диапазон пошире
-            let bassCount = 12; 
-            
-            for (let i = 0; i < bassCount; i++) {
+            // Берем чуть более широкий спектр низов
+            for (let i = 0; i < 10; i++) {
                 bassSum += dataArray[i];
             }
+            let bassAvg = bassSum / 10;
+
+            // --- АНИМАЦИЯ ДРАМЫ ---
             
-            let bassAverage = bassSum / bassCount;
+            // Нормализация (0.0 - 1.0)
+            const beatIntensity = bassAvg / 255; 
 
-            // Настраиваем чувствительность
-            // bassAverage — это число от 0 до 255.
-            // Делим на 400, чтобы пульсация была мягкой (для Sting подходит лучше, чем жесткое техно)
-            const scale = 1 + (bassAverage / 400);
+            // 1. Пульсация (Scale)
+            // Он не прыгает. Он тяжело дышит. 
+            // Scale меняется от 1.0 до 1.15
+            const scale = 1 + (beatIntensity * 0.15);
 
-            // Применяем масштаб + небольшое вращение для живости
-            // Вращение зависит от баса: чем громче удар, тем чуть больше поворот
-            const rotation = (bassAverage / 50) - 2; // легкое покачивание
-
-            syrnik.style.transform = `scale(${scale}) rotate(${rotation}deg)`;
+            // 2. Вращение (Rotation)
+            // Он медленно вращается постоянно, символизируя ход времени
+            eternalRotation += 0.05; 
+            // Но на бите его чуть "дергает" от боли
+            const twitch = (beatIntensity * 2) * (Math.random() > 0.5 ? 1 : -1);
+            
+            // 3. Тень (Drop Shadow)
+            // Тень становится глубже и резче на ударе
+            // Черная тень, а не светящаяся
+            const shadowOpacity = 0.5 + (beatIntensity * 0.5);
+            const shadowBlur = 20 - (beatIntensity * 10); // Тень "сжимается" на ударе
+            
+            // Применяем стили
+            syrnik.style.transform = `scale(${scale}) rotate(${eternalRotation + twitch}deg)`;
+            
+            // Меняем фильтр в такт: на ударе сырник становится чуть контрастнее (драматичнее)
+            // И тень пульсирует
+            syrnik.style.filter = `
+                grayscale(90%) 
+                contrast(${100 + beatIntensity * 50}%) 
+                brightness(${0.8 + beatIntensity * 0.1})
+                drop-shadow(0 0 ${shadowBlur}px rgba(0,0,0,${shadowOpacity}))
+            `;
         }
     </script>
 </body>
